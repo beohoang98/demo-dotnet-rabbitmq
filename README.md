@@ -34,6 +34,11 @@ sequenceDiagram
 │   ├── dictionary.api/           # REST API service
 │   ├── dictionary.consumer/      # RabbitMQ consumer service
 │   └── dictionary.data/          # Data layer with Entity Framework
+├── frontend/                     # React frontend application
+│   ├── src/                      # Source code
+│   ├── public/                   # Static assets
+│   ├── package.json              # Node.js dependencies
+│   └── vite.config.js            # Vite configuration
 ├── docs/                         # Documentation
 │   └── flows.mermaid            # Architecture diagrams
 ├── .env.example                  # Environment variables template
@@ -48,6 +53,7 @@ sequenceDiagram
 - **Data Persistence**: SQLite database with Entity Framework Core
 - **Microservices**: Containerized services with Docker
 - **Real-time Processing**: Background consumer for processing messages
+- **Frontend**: React SPA with Material-UI for user interaction
 
 ## Technology Stack
 
@@ -62,6 +68,13 @@ sequenceDiagram
 - **Pika**: RabbitMQ client library
 - **OpenAI GPT-4o-mini**: AI model for generating word definitions
 - **Custom AI Generator**: Word generation logic with OpenAI integration
+
+### Frontend (React)
+- **React 19**: Latest React version
+- **Material-UI (MUI)**: Modern React components
+- **Vite**: Fast build tool and dev server
+- **Axios**: HTTP client for API calls
+- **ESLint & Prettier**: Code quality and formatting
 
 ### Infrastructure
 - **RabbitMQ**: Message broker with management UI
@@ -100,6 +113,7 @@ sequenceDiagram
    ```
 
 4. **Access the services**
+   - **Frontend**: http://localhost:3000
    - **API**: http://localhost:5001
    - **RabbitMQ Management UI**: http://localhost:15672
      - Username: `user`
@@ -129,6 +143,34 @@ GET /api/word/{id}
 ```
 
 ## Development Setup
+
+### Frontend Development
+
+1. **Navigate to frontend directory**
+   ```bash
+   cd frontend
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Start development server**
+   ```bash
+   npm run dev
+   ```
+
+4. **Build for production**
+   ```bash
+   npm run build
+   ```
+
+5. **Lint and format code**
+   ```bash
+   npm run lint
+   npm run format
+   ```
 
 ### Backend Development
 
