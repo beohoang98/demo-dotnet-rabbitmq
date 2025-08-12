@@ -113,7 +113,7 @@ sequenceDiagram
    ```
 
 4. **Access the services**
-   - **Frontend**: http://localhost:3000
+   - **Frontend**: http://localhost:3000 (React SPA with Material-UI)
    - **API**: http://localhost:5001
    - **RabbitMQ Management UI**: http://localhost:15672
      - Username: `user`
