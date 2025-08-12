@@ -1,0 +1,15 @@
+﻿{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Default": {
+      "commandName": "Project",
+      "args": [],
+      "workingDirectory": "$(ProjectDir)",
+      "hotReloadEnabled": true,
+      "launchBrowser": false,
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+---
+title: Dictionary Generate Flow
+---
+sequenceDiagram
+    participant Backend as ".NET Backend"
+    participant RabbitMQ as "RabbitMQ Message Broker"
+    participant Consumer as ".NET Console"
+    participant Database as ".NET SQLite"
+    participant Generator as ".NET Python Worker"
+
+    Backend->>RabbitMQ: send word request
+    RabbitMQ->>Generator: forward request
+    Generator->>RabbitMQ: send generated words
+    RabbitMQ->>Consumer: deliver words
+    Consumer->>Database: store words
+
+    Database<<->>Backend: Polling status

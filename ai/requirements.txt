@@ -1,0 +1,6 @@
+# openai
+openai==1.99.6
+
+# rabbitmq
+pika==1.3.2
+

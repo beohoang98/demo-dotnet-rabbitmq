@@ -1,0 +1,68 @@
+services:
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+
+  dictionary-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dictionary-api
+    ports:
+      - "5001:8080"
+    depends_on:
+      - rabbitmq
+    command: ["./dictionary.api"]
+    environment: &default_env
+      DOTNET_ENVIRONMENT: Development
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Port: 5672
+      RabbitMQ__Username: user
+      RabbitMQ__Password: password
+      ConnectionStrings__Database: Data Source=/var/app/data/dictionary.db
+    volumes:
+      - data:/var/app/data
+
+  dictionary-consumer:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dictionary-consumer
+    volumes:
+      - data:/var/app/data
+    command: ["./dictionary.consumer"]
+    environment: *default_env
+    depends_on:
+      - rabbitmq
+
+  ai_generator:
+    build:
+      context: ./ai
+      dockerfile: Dockerfile
+    container_name: ai-generator
+    volumes:
+      - data:/var/app/data
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: user
+      RABBITMQ_PASSWORD: password
+    depends_on:
+      - rabbitmq
+
+networks:
+  default:
+    name: dotnet-rabbitmq
+    driver: bridge
+
+volumes:
+  data:
+    name: dotnet-rabbitmq-data
+    driver: local
