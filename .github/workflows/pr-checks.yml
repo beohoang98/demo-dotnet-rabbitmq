@@ -1,0 +1,263 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    types: [opened, synchronize, reopened]
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      dotnet: ${{ steps.changes.outputs.dotnet }}
+      python: ${{ steps.changes.outputs.python }}
+      docker: ${{ steps.changes.outputs.docker }}
+      docs: ${{ steps.changes.outputs.docs }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - uses: dorny/paths-filter@v3
+      id: changes
+      with:
+        filters: |
+          dotnet:
+            - 'backend/**'
+          python:
+            - 'ai/**'
+          docker:
+            - '**/Dockerfile'
+            - 'docker-compose.yml'
+          docs:
+            - '**.md'
+            - 'docs/**'
+
+  lint-dotnet:
+    name: Lint .NET Code
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.dotnet == 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      working-directory: ./backend
+      run: dotnet restore dictionary.sln
+
+    - name: Format check
+      working-directory: ./backend
+      run: dotnet format dictionary.sln --verify-no-changes --verbosity diagnostic
+
+    - name: Code analysis
+      working-directory: ./backend
+      run: dotnet build dictionary.sln --configuration Release --verbosity normal
+
+  lint-python:
+    name: Lint Python Code
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install linting tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort mypy bandit safety
+
+    - name: Install dependencies
+      working-directory: ./ai
+      run: pip install -r requirements.txt
+
+    - name: Run flake8
+      working-directory: ./ai
+      run: flake8 . --max-line-length=88 --extend-ignore=E203,W503
+
+    - name: Check import sorting
+      working-directory: ./ai
+      run: isort --check-only --diff .
+
+    - name: Check code formatting
+      working-directory: ./ai
+      run: black --check --diff .
+
+    - name: Type checking with mypy
+      working-directory: ./ai
+      run: mypy . --ignore-missing-imports || true
+
+    - name: Security check with bandit
+      working-directory: ./ai
+      run: bandit -r . -f json -o bandit-report.json || true
+
+    - name: Check for known security vulnerabilities
+      working-directory: ./ai
+      run: safety check --json || true
+
+  test-coverage:
+    name: Test Coverage
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.dotnet == 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      working-directory: ./backend
+      run: dotnet restore dictionary.sln
+
+    - name: Run tests with coverage
+      working-directory: ./backend
+      run: |
+        dotnet test dictionary.sln \
+          --configuration Release \
+          --collect:"XPlat Code Coverage" \
+          --results-directory ./coverage
+
+    - name: Generate coverage report
+      working-directory: ./backend
+      run: |
+        dotnet tool install -g dotnet-reportgenerator-globaltool
+        reportgenerator \
+          -reports:"coverage/**/coverage.cobertura.xml" \
+          -targetdir:coverage-report \
+          -reporttypes:Html
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./backend/coverage/**/coverage.cobertura.xml
+        flags: dotnet
+        name: codecov-dotnet
+
+  docker-security:
+    name: Docker Security Scan (Local Build)
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docker == 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build .NET Docker image (for scanning only)
+      run: docker build -t test-backend:latest ./backend
+
+    - name: Build Python Docker image (for scanning only)
+      run: docker build -t test-ai:latest ./ai
+
+    - name: Scan .NET image with Trivy
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'test-backend:latest'
+        format: 'sarif'
+        output: 'trivy-backend.sarif'
+
+    - name: Scan Python image with Trivy
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'test-ai:latest' 
+        format: 'sarif'
+        output: 'trivy-ai.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: '.'
+
+    - name: Cleanup test images
+      if: always()
+      run: |
+        docker rmi test-backend:latest test-ai:latest || true
+        echo "✅ Security scan completed, test images cleaned up"
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Dependency Review
+      uses: actions/dependency-review-action@v4
+      with:
+        fail-on-severity: moderate
+
+  pr-size-check:
+    name: PR Size Check
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check PR size
+      uses: pascalgn/size-label-action@v0.5.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        sizes: >
+          {
+            "0": "XS",
+            "10": "S", 
+            "30": "M",
+            "100": "L",
+            "500": "XL",
+            "1000": "XXL"
+          }
+
+  pr-comment:
+    name: PR Comment
+    runs-on: ubuntu-latest
+    needs: [lint-dotnet, lint-python, test-coverage, docker-security]
+    if: always()
+    
+    steps:
+    - name: Find Comment
+      uses: peter-evans/find-comment@v3
+      id: find-comment
+      with:
+        issue-number: ${{ github.event.pull_request.number }}
+        comment-author: 'github-actions[bot]'
+        body-includes: '<!-- PR_CHECKS_COMMENT -->'
+
+    - name: Create or update comment
+      uses: peter-evans/create-or-update-comment@v4
+      with:
+        comment-id: ${{ steps.find-comment.outputs.comment-id }}
+        issue-number: ${{ github.event.pull_request.number }}
+        edit-mode: replace
+        body: |
+          <!-- PR_CHECKS_COMMENT -->
+          ## 🔍 Pull Request Checks Summary
+          
+          | Check | Status |
+          |-------|--------|
+          | .NET Linting | ${{ needs.lint-dotnet.result == 'success' && '✅' || needs.lint-dotnet.result == 'skipped' && '⏭️' || '❌' }} |
+          | Python Linting | ${{ needs.lint-python.result == 'success' && '✅' || needs.lint-python.result == 'skipped' && '⏭️' || '❌' }} |
+          | Test Coverage | ${{ needs.test-coverage.result == 'success' && '✅' || needs.test-coverage.result == 'skipped' && '⏭️' || '❌' }} |
+          | Docker Security | ${{ needs.docker-security.result == 'success' && '✅' || needs.docker-security.result == 'skipped' && '⏭️' || '❌' }} |
+          
+          🔗 [View detailed workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
