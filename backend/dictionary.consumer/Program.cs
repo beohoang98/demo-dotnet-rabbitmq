@@ -1,13 +1,12 @@
-﻿using Dictionary.Consumer;
 using Dictionary.Consumer.Consumers;
 using Dictionary.Data.Context;
 using Dictionary.Data.Services;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using RabbitMQ.Client;
 
 var host = Host.CreateApplicationBuilder();
 Console.WriteLine(host.Environment.EnvironmentName);
@@ -21,18 +20,23 @@ host.Services.AddDbContext<AppDbContext>(options =>
 );
 host.Services.AddScoped<DictionaryService>();
 
-host.Services.AddScoped<IConnectionFactory>(serviceProvider =>
+// Configure MassTransit with RabbitMQ
+host.Services.AddMassTransit(x =>
 {
-  var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-  return new ConnectionFactory()
+  x.AddConsumer<WordGenerateConsumer>();
+
+  x.UsingRabbitMq((context, cfg) =>
   {
-    HostName = configuration["RabbitMQ:Host"],
-    Port = int.Parse(configuration["RabbitMQ:Port"]),
-    UserName = configuration["RabbitMQ:Username"],
-    Password = configuration["RabbitMQ:Password"],
-  };
+    var configuration = context.GetRequiredService<IConfiguration>();
+    cfg.Host(configuration["RabbitMQ:Host"], (ushort)int.Parse(configuration["RabbitMQ:Port"] ?? "5672"), "/", h =>
+    {
+      h.Username(configuration["RabbitMQ:Username"] ?? "guest");
+      h.Password(configuration["RabbitMQ:Password"] ?? "guest");
+    });
+
+    cfg.ConfigureEndpoints(context);
+  });
 });
-host.Services.AddHostedService<AppHostedService>();
 
 var app = host.Build();
 

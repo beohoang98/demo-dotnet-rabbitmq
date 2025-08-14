@@ -4,9 +4,9 @@ using Dictionary.Api.Models;
 using Dictionary.Api.Services;
 using Dictionary.Data.Context;
 using Dictionary.Data.Services;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using RabbitMQ.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,24 +24,24 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 });
 builder.Services.AddScoped<DictionaryService>();
 builder.Services.AddScoped<GenerateWordService>();
+
+// Configure MassTransit with RabbitMQ
 builder.Services.Configure<RabbitMqConfig>(builder.Configuration.GetSection("RabbitMQ"));
-builder.Services.AddSingleton<IConnectionFactory>(sp =>
+builder.Services.AddMassTransit(x =>
 {
-  var config = sp.GetRequiredService<IOptions<RabbitMqConfig>>().Value;
-  var logger = sp.GetRequiredService<ILogger<ConnectionFactory>>();
-  logger.LogInformation(
-    "Creating RabbitMQ connection factory: {HostName}:{Port}",
-    config.Host,
-    config.Port
-  );
-  return new ConnectionFactory()
+  x.UsingRabbitMq((context, cfg) =>
   {
-    HostName = config.Host,
-    Port = config.Port,
-    UserName = config.UserName,
-    Password = config.Password,
-  };
+    var rabbitMqConfig = context.GetRequiredService<IOptions<RabbitMqConfig>>().Value;
+    cfg.Host(rabbitMqConfig.Host, (ushort)rabbitMqConfig.Port, "/", h =>
+    {
+      h.Username(rabbitMqConfig.UserName);
+      h.Password(rabbitMqConfig.Password);
+    });
+    
+    cfg.ConfigureEndpoints(context);
+  });
 });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

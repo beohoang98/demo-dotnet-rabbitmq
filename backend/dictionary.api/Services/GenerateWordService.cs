@@ -1,26 +1,24 @@
-using System.Text;
-using RabbitMQ.Client;
+using Dictionary.Data.Messages;
+using MassTransit;
 
 namespace Dictionary.Api.Services;
 
 public class GenerateWordService(
-  IConnectionFactory connectionFactory,
+  IBus bus,
   ILogger<GenerateWordService> logger
 )
 {
-  private async Task PublishWordAsync(string word)
-  {
-    logger.LogInformation("Publishing word to RabbitMQ {Word}", word);
-    logger.LogInformation("Send to RabbitMQ {Uri}", connectionFactory.Uri);
-    using var connection = await connectionFactory.CreateConnectionAsync();
-    using var channel = await connection.CreateChannelAsync();
-    await channel.QueueDeclareAsync("words", durable: false, exclusive: false, autoDelete: false);
-    var body = Encoding.UTF8.GetBytes(word);
-    await channel.BasicPublishAsync(exchange: "", routingKey: "words", body: body);
-  }
-
   public async Task GenerateWordAsync(string word)
   {
-    await PublishWordAsync(word);
+    logger.LogInformation("Publishing word generation request for {Word}", word);
+    
+    var message = new WordGenerateRequest
+    {
+      Word = word,
+      RequestedAt = DateTime.UtcNow
+    };
+    
+    await bus.Publish(message);
+    logger.LogInformation("Published word generation request for {Word}", word);
   }
 }
