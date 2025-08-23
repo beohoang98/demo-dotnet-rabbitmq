@@ -303,5 +303,7 @@ frontend/.env.production.local
 *.db
 
 #
-**/.idea/
 .idea/
+**/*.db
+*.DotSettings.user
+.DS_Store
