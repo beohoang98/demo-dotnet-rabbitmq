@@ -1,7 +1,7 @@
 ﻿{
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
-    "Default": {
+    "run": {
       "commandName": "Project",
       "args": [],
       "workingDirectory": "$(ProjectDir)",
