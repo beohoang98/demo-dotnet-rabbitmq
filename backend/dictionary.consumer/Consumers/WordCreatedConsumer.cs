@@ -1,18 +1,14 @@
-using System.ComponentModel.Design;
-using System.Text;
-using System.Text.Json;
 using Dictionary.Data.Models;
 using Dictionary.Data.Services;
 using MassTransit;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
 
 namespace Dictionary.Consumer.Consumers;
 
-public class WordCreatedConsumer(DictionaryService dictionaryService, ILogger<WordCreatedConsumer> logger)
-  : IConsumer<DictionaryWord>
+public class WordCreatedConsumer(
+  DictionaryService dictionaryService,
+  ILogger<WordCreatedConsumer> logger
+) : IConsumer<DictionaryWord>
 {
   public async Task Consume(ConsumeContext<DictionaryWord> context)
   {

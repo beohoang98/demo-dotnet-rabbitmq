@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-
 namespace Dictionary.Data.Models;
 
 public class DictionaryWord

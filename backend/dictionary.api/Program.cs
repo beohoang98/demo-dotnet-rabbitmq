@@ -4,11 +4,9 @@ using System.Text.Json.Serialization;
 using Dictionary.Api.Models;
 using Dictionary.Api.Services;
 using Dictionary.Data.Context;
-using Dictionary.Data.Models;
 using Dictionary.Data.Services;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
