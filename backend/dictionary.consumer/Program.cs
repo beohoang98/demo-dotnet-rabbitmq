@@ -1,3 +1,4 @@
+using System.Net.Mime;
 using Dictionary.Consumer.Consumers;
 using Dictionary.Data.Context;
 using Dictionary.Data.Services;
@@ -28,16 +29,20 @@ host.Services.AddMassTransit(x =>
   x.UsingRabbitMq((context, cfg) =>
   {
     var configuration = context.GetRequiredService<IConfiguration>();
-    cfg.Host(configuration["RabbitMQ:Host"], (ushort)int.Parse(configuration["RabbitMQ:Port"] ?? "5672"), "/", h =>
+    cfg.Host($"rabbitmq://{configuration["RabbitMQ:Host"]}:{configuration["RabbitMQ:Port"]}", h =>
     {
       h.Username(configuration["RabbitMQ:Username"] ?? "guest");
       h.Password(configuration["RabbitMQ:Password"] ?? "guest");
     });
 
+    cfg.SerializerContentType = new ContentType("application/json");
+    cfg.ClearSerialization();
+    cfg.UseRawJsonDeserializer();
+    cfg.UseRawJsonSerializer();
+    
     cfg.ConfigureEndpoints(context);
   });
 });
 
 var app = host.Build();
-
 await app.RunAsync();

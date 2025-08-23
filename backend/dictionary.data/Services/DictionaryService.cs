@@ -15,7 +15,10 @@ public class DictionaryService
 
   public async Task<DictionaryWord?> GetWordAsync(string word)
   {
-    return await _dbContext.DictionaryWords.AsNoTracking().FirstOrDefaultAsync(w => w.Word == word);
+    return await _dbContext
+      .DictionaryWords.AsNoTracking()
+      .Include(w => w.Definitions)
+      .FirstOrDefaultAsync(w => w.Word == word);
   }
 
   public async Task<DictionaryWord> AddWordAsync(DictionaryWord word)

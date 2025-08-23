@@ -1,3 +1,4 @@
+using System.Net.Mime;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Dictionary.Api.Models;
@@ -6,7 +7,6 @@ using Dictionary.Data.Context;
 using Dictionary.Data.Services;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,22 +24,32 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 });
 builder.Services.AddScoped<DictionaryService>();
 builder.Services.AddScoped<GenerateWordService>();
-
-// Configure MassTransit with RabbitMQ
-builder.Services.Configure<RabbitMqConfig>(builder.Configuration.GetSection("RabbitMQ"));
 builder.Services.AddMassTransit(x =>
 {
-  x.UsingRabbitMq((context, cfg) =>
+  var rabbitMqConfig = builder.Configuration.GetSection("RabbitMQ").Get<RabbitMqConfig>();
+  if (rabbitMqConfig == null)
   {
-    var rabbitMqConfig = context.GetRequiredService<IOptions<RabbitMqConfig>>().Value;
-    cfg.Host(rabbitMqConfig.Host, (ushort)rabbitMqConfig.Port, "/", h =>
+    throw new ArgumentNullException(nameof(rabbitMqConfig), "RabbitMQ configuration is missing");
+  }
+  var hostAddress = $"rabbitmq://{rabbitMqConfig.Host}:{rabbitMqConfig.Port}";
+
+  x.UsingRabbitMq(
+    (context, cfg) =>
     {
-      h.Username(rabbitMqConfig.UserName);
-      h.Password(rabbitMqConfig.Password);
-    });
-    
-    cfg.ConfigureEndpoints(context);
-  });
+      cfg.Host(
+        hostAddress,
+        h =>
+        {
+          h.Username(rabbitMqConfig.UserName);
+          h.Password(rabbitMqConfig.Password);
+        }
+      );
+      cfg.SerializerContentType = new ContentType("application/json");
+      cfg.ClearSerialization();
+      cfg.UseRawJsonDeserializer();
+      cfg.UseRawJsonSerializer();
+    }
+  );
 });
 
 builder.Services.AddEndpointsApiExplorer();

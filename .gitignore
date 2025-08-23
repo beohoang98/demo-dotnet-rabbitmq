@@ -301,3 +301,9 @@ frontend/.env.production.local
 
 # Database
 *.db
+
+#
+.idea/
+**/*.db
+*.DotSettings.user
+.DS_Store

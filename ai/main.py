@@ -25,7 +25,7 @@ def main():
         try:
             connection = pika.BlockingConnection(connParams)
             channel = connection.channel()
-            channel.queue_declare(queue="words")
+            channel.queue_declare(queue="words", durable=True)
             channel.basic_consume(
                 queue="words", on_message_callback=callback, auto_ack=False
             )
@@ -49,7 +49,8 @@ def main():
 def callback(ch, method, properties, body):
     print(f"Received message: {body.decode()}")
     try:
-        wordReq = WordRequest(word=body.decode())
+        reqInJson = json.loads(body.decode())
+        wordReq = WordRequest(**reqInJson)
         wordGen = WordGenerator(model_name="gpt-4o-mini")
         wordRes = wordGen.generate(wordReq)
         wordJson = wordRes.json()
