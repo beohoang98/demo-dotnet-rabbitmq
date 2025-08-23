@@ -1,12 +1,14 @@
+using System.Net.Mime;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Dictionary.Api.Models;
 using Dictionary.Api.Services;
 using Dictionary.Data.Context;
+using Dictionary.Data.Models;
 using Dictionary.Data.Services;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using RabbitMQ.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,24 +26,34 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 });
 builder.Services.AddScoped<DictionaryService>();
 builder.Services.AddScoped<GenerateWordService>();
-builder.Services.Configure<RabbitMqConfig>(builder.Configuration.GetSection("RabbitMQ"));
-builder.Services.AddSingleton<IConnectionFactory>(sp =>
+builder.Services.AddMassTransit(x =>
 {
-  var config = sp.GetRequiredService<IOptions<RabbitMqConfig>>().Value;
-  var logger = sp.GetRequiredService<ILogger<ConnectionFactory>>();
-  logger.LogInformation(
-    "Creating RabbitMQ connection factory: {HostName}:{Port}",
-    config.Host,
-    config.Port
-  );
-  return new ConnectionFactory()
+  var rabbitMqConfig = builder.Configuration.GetSection("RabbitMQ").Get<RabbitMqConfig>();
+  if (rabbitMqConfig == null)
   {
-    HostName = config.Host,
-    Port = config.Port,
-    UserName = config.UserName,
-    Password = config.Password,
-  };
+    throw new ArgumentNullException(nameof(rabbitMqConfig), "RabbitMQ configuration is missing");
+  }
+  var hostAddress = $"rabbitmq://{rabbitMqConfig.Host}:{rabbitMqConfig.Port}";
+
+  x.UsingRabbitMq(
+    (context, cfg) =>
+    {
+      cfg.Host(
+        hostAddress,
+        h =>
+        {
+          h.Username(rabbitMqConfig.UserName);
+          h.Password(rabbitMqConfig.Password);
+        }
+      );
+      cfg.SerializerContentType = new ContentType("application/json");
+      cfg.ClearSerialization();
+      cfg.UseRawJsonDeserializer();
+      cfg.UseRawJsonSerializer();
+    }
+  );
 });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

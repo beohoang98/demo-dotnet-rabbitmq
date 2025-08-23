@@ -301,3 +301,7 @@ frontend/.env.production.local
 
 # Database
 *.db
+
+#
+**/.idea/
+.idea/
