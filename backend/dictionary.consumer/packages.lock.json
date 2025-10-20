@@ -4,11 +4,11 @@
     "net9.0": {
       "MassTransit": {
         "type": "Direct",
-        "requested": "[8.5.2, )",
-        "resolved": "8.5.2",
-        "contentHash": "LsaJjHcyUHAm/s7aO5XkUkp8mYcwyVHug2jrLBaUrqau+lXynz8+e7wWIEfJJ5d/+wGKOdiX+oI9C1QYNoeZaQ==",
+        "requested": "[8.5.4, )",
+        "resolved": "8.5.4",
+        "contentHash": "uNmFkIICpCZ6AWSJfWfQJc4jjVhQygdPY4/yFEiOZkIVbwEbpFrJTjThzSSinbZFCtyYQMBN6RqHghVMwQy7pA==",
         "dependencies": {
-          "MassTransit.Abstractions": "8.5.2",
+          "MassTransit.Abstractions": "8.5.4",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.0",
           "Microsoft.Extensions.Diagnostics.HealthChecks": "9.0.0",
           "Microsoft.Extensions.Hosting.Abstractions": "9.0.0",
@@ -81,8 +81,8 @@
       },
       "MassTransit.Abstractions": {
         "type": "Transitive",
-        "resolved": "8.5.2",
-        "contentHash": "5rgaFoJXGpfOeUDegkS2h08NvGwW6Qdkj5gou9kBfMb39tlWWyM/S3c/HWrpaXUrlE+MQlK3o6xHM85hJtP2aA=="
+        "resolved": "8.5.4",
+        "contentHash": "6rIDZNr+mldYiIyiFXY4l4p3BsUDVQDtHpRwoZOQY7/T6TboAqCV4fbLM4tDwZqV8OOWbJHs1a4wQyyAOYwHGA=="
       },
       "Microsoft.Data.Sqlite.Core": {
         "type": "Transitive",
