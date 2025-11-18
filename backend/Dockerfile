@@ -8,7 +8,7 @@ RUN dotnet restore
 RUN dotnet build --no-restore
 RUN dotnet publish --no-restore -c Release -o out
 
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
 
 WORKDIR /app
 
